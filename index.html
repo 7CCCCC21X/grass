@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>草总数统计</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px;
+    }
+
+    .progress-container {
+      width: 80%;
+      background-color: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 20px auto;
+      height: 25px;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #4caf50;
+      transition: width 0.2s ease;
+    }
+
+    .progress-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      line-height: 25px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🌿 统计 Eclipse 草总数</h2>
+
+  <input type="number" id="limitInput" placeholder="输入 limit 数量，例如 100000" />
+  <button onclick="fetchGrass()">开始统计</button>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="progress-text" id="progressText">0%</div>
+  </div>
+
+  <div class="result" id="result">总草数：--</div>
+
+  <script>
+    async function fetchGrass() {
+      const limit = document.getElementById("limitInput").value || 100000;
+      const resultEl = document.getElementById("result");
+      const progressBar = document.getElementById("progressBar");
+      const progressText = document.getElementById("progressText");
+
+      resultEl.innerText = "📊 正在加载...";
+      progressBar.style.width = "0%";
+      progressText.innerText = "0%";
+
+      try {
+        const res = await fetch(`https://tap.eclipse.xyz/api/eclipse/leaderboards?limit=${limit}&offset=0`);
+        const json = await res.json();
+        const list = json.data || [];
+
+        let total = 0;
+        const len = list.length;
+
+        for (let i = 0; i < len; i++) {
+          total += list[i].points || 0;
+
+          // 每 100 条更新一次进度条
+          if (i % 100 === 0 || i === len - 1) {
+            const percent = ((i + 1) / len * 100).toFixed(1);
+            progressBar.style.width = `${percent}%`;
+            progressText.innerText = `${percent}%`;
+          }
+        }
+
+        resultEl.innerText = `🌱 草总数为：${total.toLocaleString()}（共 ${len} 条记录）`;
+      } catch (err) {
+        resultEl.innerText = `❌ 加载失败：${err.message}`;
+        progressBar.style.width = "0%";
+        progressText.innerText = "失败";
+      }
+    }
+  </script>
+</body>
+</html>
