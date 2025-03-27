@@ -20,12 +20,21 @@ function calculate() {
 }
 calculate();
 
-// 排名逻辑
+// ---------- 排名查询部分 ----------
+
 let leaderboard = {};
 
-fetch("data/leaderboard.txt")
-  .then((res) => res.text())
-  .then((text) => {
+const leaderboardFiles = [
+  "data/leaderboard-part.txt",
+  "data/leaderboard-part1.txt",
+  "data/leaderboard-part2.txt",
+];
+
+// 加载所有排行榜文件
+Promise.all(
+  leaderboardFiles.map((file) => fetch(file).then((res) => res.text()))
+).then((results) => {
+  results.forEach((text) => {
     const lines = text.split(/\\r?\\n/);
     lines.forEach((line) => {
       const [rank, address, points] = line.split(",");
@@ -36,11 +45,12 @@ fetch("data/leaderboard.txt")
         };
       }
     });
-    document.getElementById("searchResult").textContent = "请输入地址进行查询";
-  })
-  .catch(() => {
-    document.getElementById("searchResult").textContent = "❌ 无法加载排行榜";
   });
+
+  document.getElementById("searchResult").textContent = "请输入地址进行查询";
+}).catch(() => {
+  document.getElementById("searchResult").textContent = "❌ 加载排行榜失败";
+});
 
 function searchAddress() {
   const addr = document.getElementById("address").value.trim().toLowerCase();
