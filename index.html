@@ -1,104 +1,108 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>草总数统计</title>
+  <meta charset="UTF-8">
+  <title>草估值计算器 + 排名查询</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 40px;
-    }
-
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 10px;
-    }
-
-    .progress-container {
-      width: 80%;
-      background-color: #eee;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 20px auto;
-      height: 25px;
-      position: relative;
-    }
-
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background-color: #4caf50;
-      transition: width 0.2s ease;
-    }
-
-    .progress-text {
-      position: absolute;
-      width: 100%;
-      text-align: center;
-      line-height: 25px;
-      font-weight: bold;
-      color: #333;
-    }
-
-    .result {
-      margin-top: 20px;
-      font-size: 20px;
-    }
+    body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    input[type="number"], input[type="text"] { width: 250px; padding: 6px; margin: 6px 0; }
+    h1, h2 { color: #333; }
   </style>
 </head>
 <body>
-  <h2>🌿 统计 Eclipse 草总数</h2>
 
-  <input type="number" id="limitInput" placeholder="输入 limit 数量，例如 100000" />
-  <button onclick="fetchGrass()">开始统计</button>
+  <h1>草估值计算器</h1>
+  <p>FDV = 6 亿，草总量 = 1423.46 亿</p>
 
-  <div class="progress-container">
-    <div class="progress-bar" id="progressBar"></div>
-    <div class="progress-text" id="progressText">0%</div>
-  </div>
+  <label for="amount">请输入草的数量：</label>
+  <input type="number" id="amount" value="10000" oninput="calculate()">
 
-  <div class="result" id="result">总草数：--</div>
+  <table>
+    <thead>
+      <tr>
+        <th>空投占比</th>
+        <th>每个草价值（美元）</th>
+        <th>输入数量对应价值（美元）</th>
+      </tr>
+    </thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <hr>
+
+  <h2>地址查询排名</h2>
+  <p>请上传 <code>leaderboard.txt</code> 文件（格式：<code>排名,地址,草数量</code>）</p>
+  <input type="file" id="fileInput" accept=".txt">
+  <br><br>
+  <label for="address">请输入地址：</label>
+  <input type="text" id="address" oninput="searchAddress()" placeholder="0x...">
+  <p id="searchResult">请上传文件并输入地址</p>
 
   <script>
-    async function fetchGrass() {
-      const limit = document.getElementById("limitInput").value || 100000;
-      const resultEl = document.getElementById("result");
-      const progressBar = document.getElementById("progressBar");
-      const progressText = document.getElementById("progressText");
+    const prices = [
+      { percent: "3%", value: 0.0001264525 },
+      { percent: "5%", value: 0.0002107542 },
+      { percent: "10%", value: 0.0004215084 },
+      { percent: "15%", value: 0.0006322626 },
+      { percent: "20%", value: 0.0008430168 },
+    ];
 
-      resultEl.innerText = "📊 正在加载...";
-      progressBar.style.width = "0%";
-      progressText.innerText = "0%";
+    function calculate() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      const tbody = document.getElementById("results");
+      tbody.innerHTML = "";
+      prices.forEach(p => {
+        const total = (amount * p.value).toFixed(4);
+        const row = `<tr><td>${p.percent}</td><td>${p.value.toFixed(10)}</td><td>$${total}</td></tr>`;
+        tbody.innerHTML += row;
+      });
+    }
 
-      try {
-        // 使用你自己的后端代理接口，避免 CORS 问题
-        const res = await fetch(`https://grass-o7tqurk21-7ccccc21xs-projects.vercel.app/api/grass?limit=${limit}`);
-        const json = await res.json();
-        const list = json.data || [];
+    calculate();
 
-        let total = 0;
-        const len = list.length;
+    // 地址排名逻辑
+    let leaderboard = {};
 
-        for (let i = 0; i < len; i++) {
-          total += list[i].points || 0;
+    document.getElementById("fileInput").addEventListener("change", function () {
+      const file = this.files[0];
+      if (!file) return;
 
-          // 每 100 条更新一次进度条
-          if (i % 100 === 0 || i === len - 1) {
-            const percent = ((i + 1) / len * 100).toFixed(1);
-            progressBar.style.width = `${percent}%`;
-            progressText.innerText = `${percent}%`;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const lines = e.target.result.split(/\\r?\\n/);
+        lines.forEach(line => {
+          const [rank, address, points] = line.split(",");
+          if (rank && address && points) {
+            leaderboard[address.trim().toLowerCase()] = {
+              rank: rank.trim(),
+              points: points.trim()
+            };
           }
-        }
+        });
+        document.getElementById("searchResult").textContent = "文件已加载，输入地址即可查询";
+      };
+      reader.readAsText(file);
+    });
 
-        resultEl.innerText = `🌱 草总数为：${total.toLocaleString()}（共 ${len} 条记录）`;
-      } catch (err) {
-        resultEl.innerText = `❌ 加载失败：${err.message}`;
-        progressBar.style.width = "0%";
-        progressText.innerText = "失败";
+    function searchAddress() {
+      const addr = document.getElementById("address").value.trim().toLowerCase();
+      const result = leaderboard[addr];
+      const output = document.getElementById("searchResult");
+
+      if (!addr) {
+        output.textContent = "请输入地址";
+      } else if (!leaderboard || Object.keys(leaderboard).length === 0) {
+        output.textContent = "请先上传排行榜文件";
+      } else if (result) {
+        output.innerHTML = `✅ 地址排名：<b>#${result.rank}</b>，草数量：<b>${result.points}</b>`;
+      } else {
+        output.innerHTML = `❌ 地址未找到`;
       }
     }
   </script>
+
 </body>
 </html>
