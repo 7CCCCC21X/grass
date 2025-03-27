@@ -10,40 +10,48 @@ function calculate() {
   const amount = parseFloat(document.getElementById("amount").value);
   const tbody = document.getElementById("results");
   tbody.innerHTML = "";
-  prices.forEach(p => {
+  prices.forEach((p) => {
     const total = (amount * p.value).toFixed(4);
-    const row = `<tr><td>${p.percent}</td><td>${p.value.toFixed(10)}</td><td>$${total}</td></tr>`;
+    const row = `<tr><td>${p.percent}</td><td>${p.value.toFixed(
+      10
+    )}</td><td>$${total}</td></tr>`;
     tbody.innerHTML += row;
   });
 }
-
 calculate();
 
-// 读取 leaderboard.txt 并建立地址 -> 排名映射
-let leaderboardMap = {};
+// 排名逻辑
+let leaderboard = {};
 
 fetch("data/leaderboard.txt")
-  .then(res => res.text())
-  .then(text => {
+  .then((res) => res.text())
+  .then((text) => {
     const lines = text.split(/\\r?\\n/);
-    lines.forEach(line => {
+    lines.forEach((line) => {
       const [rank, address, points] = line.split(",");
-      if (address) {
-        leaderboardMap[address.trim().toLowerCase()] = {
+      if (rank && address && points) {
+        leaderboard[address.trim().toLowerCase()] = {
           rank: rank.trim(),
-          points: points.trim()
+          points: points.trim(),
         };
       }
     });
+    document.getElementById("searchResult").textContent = "请输入地址进行查询";
+  })
+  .catch(() => {
+    document.getElementById("searchResult").textContent = "❌ 无法加载排行榜";
   });
 
 function searchAddress() {
-  const input = document.getElementById("address").value.trim().toLowerCase();
-  const result = leaderboardMap[input];
+  const addr = document.getElementById("address").value.trim().toLowerCase();
+  const result = leaderboard[addr];
   const output = document.getElementById("searchResult");
-  if (result) {
-    output.innerHTML = `✅ 地址排名：#${result.rank}，草数量：${result.points}`;
+
+  if (!addr) {
+    output.textContent = "请输入地址";
+  } else if (result) {
+    output.innerHTML = `✅ 地址排名：<b>#${result.rank}</b>，草数量：<b>${result.points}</b>`;
   } else {
-    output.innerHTML = "❌ 地址未找到，请检查输入或稍后重试。";
+    output.innerHTML = `❌ 地址未找到`;
   }
 }
