@@ -1,24 +1,16 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <title>草估值计算器 + 排名查询</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #f2f2f2; }
-    input[type="number"], input[type="text"] { width: 250px; padding: 6px; margin: 6px 0; }
-    h1, h2 { color: #333; }
-  </style>
+  <meta charset="UTF-8" />
+  <title>草估值计算器 + 排名</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
   <h1>草估值计算器</h1>
   <p>FDV = 6 亿，草总量 = 1423.46 亿</p>
 
   <label for="amount">请输入草的数量：</label>
-  <input type="number" id="amount" value="10000" oninput="calculate()">
+  <input type="number" id="amount" value="10000" oninput="calculate()" />
 
   <table>
     <thead>
@@ -31,78 +23,13 @@
     <tbody id="results"></tbody>
   </table>
 
-  <hr>
+  <hr />
 
-  <h2>地址查询排名</h2>
-  <p>请上传 <code>leaderboard.txt</code> 文件（格式：<code>排名,地址,草数量</code>）</p>
-  <input type="file" id="fileInput" accept=".txt">
-  <br><br>
-  <label for="address">请输入地址：</label>
-  <input type="text" id="address" oninput="searchAddress()" placeholder="0x...">
-  <p id="searchResult">请上传文件并输入地址</p>
+  <h2>地址查询</h2>
+  <label for="address">输入地址：</label>
+  <input type="text" id="address" placeholder="0x..." oninput="searchAddress()" />
+  <p id="searchResult">正在加载 leaderboard.txt...</p>
 
-  <script>
-    const prices = [
-      { percent: "3%", value: 0.0001264525 },
-      { percent: "5%", value: 0.0002107542 },
-      { percent: "10%", value: 0.0004215084 },
-      { percent: "15%", value: 0.0006322626 },
-      { percent: "20%", value: 0.0008430168 },
-    ];
-
-    function calculate() {
-      const amount = parseFloat(document.getElementById("amount").value);
-      const tbody = document.getElementById("results");
-      tbody.innerHTML = "";
-      prices.forEach(p => {
-        const total = (amount * p.value).toFixed(4);
-        const row = `<tr><td>${p.percent}</td><td>${p.value.toFixed(10)}</td><td>$${total}</td></tr>`;
-        tbody.innerHTML += row;
-      });
-    }
-
-    calculate();
-
-    // 地址排名逻辑
-    let leaderboard = {};
-
-    document.getElementById("fileInput").addEventListener("change", function () {
-      const file = this.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const lines = e.target.result.split(/\\r?\\n/);
-        lines.forEach(line => {
-          const [rank, address, points] = line.split(",");
-          if (rank && address && points) {
-            leaderboard[address.trim().toLowerCase()] = {
-              rank: rank.trim(),
-              points: points.trim()
-            };
-          }
-        });
-        document.getElementById("searchResult").textContent = "文件已加载，输入地址即可查询";
-      };
-      reader.readAsText(file);
-    });
-
-    function searchAddress() {
-      const addr = document.getElementById("address").value.trim().toLowerCase();
-      const result = leaderboard[addr];
-      const output = document.getElementById("searchResult");
-
-      if (!addr) {
-        output.textContent = "请输入地址";
-      } else if (!leaderboard || Object.keys(leaderboard).length === 0) {
-        output.textContent = "请先上传排行榜文件";
-      } else if (result) {
-        output.innerHTML = `✅ 地址排名：<b>#${result.rank}</b>，草数量：<b>${result.points}</b>`;
-      } else {
-        output.innerHTML = `❌ 地址未找到`;
-      }
-    }
-  </script>
-
+  <script src="script.js"></script>
 </body>
 </html>
