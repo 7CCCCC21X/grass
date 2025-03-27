@@ -12,17 +12,15 @@ function calculate() {
   tbody.innerHTML = "";
   prices.forEach((p) => {
     const total = (amount * p.value).toFixed(4);
-    const row = `<tr><td>${p.percent}</td><td>${p.value.toFixed(
-      10
-    )}</td><td>$${total}</td></tr>`;
+    const row = `<tr><td>${p.percent}</td><td>${p.value.toFixed(10)}</td><td>$${total}</td></tr>`;
     tbody.innerHTML += row;
   });
 }
 calculate();
 
-// ---------- 排名查询部分 ----------
+// ----------- 新的 JSON 行排行榜解析 -----------
 
-let leaderboard = {};
+let leaderboard = {}; // address => { name, rank, points }
 
 const leaderboardFiles = [
   "data/leaderboard-part.txt",
@@ -30,23 +28,30 @@ const leaderboardFiles = [
   "data/leaderboard-part2.txt",
 ];
 
-// 加载所有排行榜文件
 Promise.all(
-  leaderboardFiles.map((file) => fetch(file).then((res) => res.text()))
+  leaderboardFiles.map((file) =>
+    fetch(file).then((res) => res.text())
+  )
 ).then((results) => {
   results.forEach((text) => {
     const lines = text.split(/\\r?\\n/);
     lines.forEach((line) => {
-      const [rank, address, points] = line.split(",");
-      if (rank && address && points) {
-        leaderboard[address.trim().toLowerCase()] = {
-          rank: rank.trim(),
-          points: points.trim(),
-        };
+      try {
+        if (line.trim() === "") return;
+        const data = JSON.parse(line);
+        const address = data.address.trim().toLowerCase();
+        if (!leaderboard[address] || Number(data.points) > Number(leaderboard[address].points)) {
+          leaderboard[address] = {
+            name: data.name,
+            rank: data.rank,
+            points: data.points,
+          };
+        }
+      } catch (e) {
+        console.warn("无法解析行:", line);
       }
     });
   });
-
   document.getElementById("searchResult").textContent = "请输入地址进行查询";
 }).catch(() => {
   document.getElementById("searchResult").textContent = "❌ 加载排行榜失败";
@@ -60,7 +65,7 @@ function searchAddress() {
   if (!addr) {
     output.textContent = "请输入地址";
   } else if (result) {
-    output.innerHTML = `✅ 地址排名：<b>#${result.rank}</b>，草数量：<b>${result.points}</b>`;
+    output.innerHTML = `✅ 地址绑定域名：<b>${result.name}</b><br>草数量：<b>${result.points}</b><br>排名：<b>#${result.rank}</b>`;
   } else {
     output.innerHTML = `❌ 地址未找到`;
   }
